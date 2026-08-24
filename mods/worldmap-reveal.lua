@@ -310,6 +310,7 @@ module.enable = function(self)
             explorecaches[name][texture] = true
 
             texture:SetVertexColor(.4,.4,.4,1)
+            texture:SetDrawLayer("BORDER")
             texture:Show()
             textureCount = textureCount + 1
           end
@@ -325,6 +326,7 @@ module.enable = function(self)
     for i = 1, NUM_WORLDMAP_OVERLAYS do
       local texture = _G[string.format("%s%s","WorldMapOverlay",i)]
       texture:SetVertexColor(1,1,1,1)
+      texture:SetDrawLayer("ARTWORK")
       texture:Hide()
     end
 
