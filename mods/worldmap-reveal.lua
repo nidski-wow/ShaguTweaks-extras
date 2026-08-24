@@ -197,14 +197,14 @@ module.enable = function(self)
     WorldMapTooltip:Hide()
   end
 
-  local function ShaguTweaksWorldMapFrame_Update()
-    -- create metatable if not yet created
-    this.overlayData = this.overlayData or setmetatable(ShaguTweaks.MapOverlayData, {__index = function(t,k)
-      local v = {}
-      rawset(t,k,v)
-      return v
-    end})
+  -- unknown zones yield an empty table rather than nil
+  local overlayData = setmetatable(ShaguTweaks.MapOverlayData, {__index = function(t,k)
+    local v = {}
+    rawset(t,k,v)
+    return v
+  end})
 
+  local function ShaguTweaksWorldMapFrame_Update()
     local mapFileName, textureHeight, textureWidth = GetMapInfo()
 
     if (not mapFileName) then mapFileName = "World" end
@@ -215,7 +215,7 @@ module.enable = function(self)
     local alreadyknown = {}
     for i=1, numOverlays do
       local textureName, textureWidth, textureHeight, offsetX, offsetY, mapPointX, mapPointY = GetMapOverlayInfo(i)
-      local overlayHash = create_hash(textureName, textureWidth, textureHeight, offsetX, offsetY, mapPointX, mapPointY)
+      local overlayHash = create_hash(prefix, textureName, textureWidth, textureHeight, offsetX, offsetY, mapPointX, mapPointY)
       alreadyknown[textureName] = overlayHash
     end
 
@@ -224,7 +224,7 @@ module.enable = function(self)
       frame:Hide()
     end
 
-    local zoneData = this.overlayData[mapFileName]
+    local zoneData = overlayData[mapFileName]
     local textureCount = 0
     local texturePixelWidth, textureFileWidth, texturePixelHeight, textureFileHeight
     for i, hash in ipairs(zoneData) do
@@ -239,7 +239,7 @@ module.enable = function(self)
       explore:SetScript("OnLeave", exploreLeave)
       explore:EnableMouse(true)
       explore:SetFrameLevel(255)
-      explore.name = mapFileName .. " (" .. name .. ")"
+      explore.name = mapFileName .. " (" .. (name or "?") .. ")"
       explore.tex = explore.tex or explore:CreateTexture("", "OVERLAY")
       explore.tex:SetBlendMode("ADD")
       explore.tex:SetTexCoord(.08, .92, .08, .92)
@@ -282,10 +282,8 @@ module.enable = function(self)
             end
           end
           for k = 1, numTexturesHorz do
-            if (textureCount > NUM_WORLDMAP_OVERLAYS) then
-              return
-            end
             texture = _G[string.format("%s%s","WorldMapOverlay",(textureCount + 1))]
+            if (not texture) then break end
             if (k < numTexturesHorz) then
               texturePixelWidth, textureFileWidth = 256,256
             else
@@ -324,7 +322,9 @@ module.enable = function(self)
   _G.WorldMapFrame_Update = function(self)
     -- hide all previously set textures
     for i = 1, NUM_WORLDMAP_OVERLAYS do
-      _G[string.format("%s%s","WorldMapOverlay",i)]:Hide()
+      local texture = _G[string.format("%s%s","WorldMapOverlay",i)]
+      texture:SetVertexColor(1,1,1,1)
+      texture:Hide()
     end
 
     -- let the game put its explored tiles on the map
