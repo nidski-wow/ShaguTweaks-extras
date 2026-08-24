@@ -212,11 +212,16 @@ module.enable = function(self)
     local prefix = string.format("Interface\\WorldMap\\%s\\",mapFileName)
     local numOverlays = GetNumMapOverlays()
 
+    -- WorldMapOverlay1..knownTextureCount are the tiles the client just
+    -- configured for discovered overlays. This mirrors the tile arithmetic in
+    -- the client's own WorldMapFrame_Update exactly.
     local alreadyknown = {}
+    local knownTextureCount = 0
     for i=1, numOverlays do
       local textureName, textureWidth, textureHeight, offsetX, offsetY, mapPointX, mapPointY = GetMapOverlayInfo(i)
       local overlayHash = create_hash(prefix, textureName, textureWidth, textureHeight, offsetX, offsetY, mapPointX, mapPointY)
       alreadyknown[textureName] = overlayHash
+      knownTextureCount = knownTextureCount + (math.ceil(textureWidth / 256) * math.ceil(textureHeight / 256))
     end
 
     -- hide all exploration points
@@ -225,7 +230,7 @@ module.enable = function(self)
     end
 
     local zoneData = overlayData[mapFileName]
-    local textureCount = 0
+    local textureCount = knownTextureCount
     local texturePixelWidth, textureFileWidth, texturePixelHeight, textureFileHeight
     for i, hash in ipairs(zoneData) do
       local textureName, textureWidth, textureHeight, offsetX, offsetY, mapPointX, mapPointY, name = unpack_hash(prefix, hash)
@@ -253,7 +258,7 @@ module.enable = function(self)
         explore:Hide()
       end
 
-      if enabled or alreadyknown[textureName] then
+      if enabled and not alreadyknown[textureName] then
         if errata[textureName] and errata[textureName].offsetX and errata[textureName].offsetX[1] == offsetX then
           offsetX = errata[textureName].offsetX[2]
         end
@@ -304,11 +309,7 @@ module.enable = function(self)
             explorecaches[name] = explorecaches[name] or {}
             explorecaches[name][texture] = true
 
-            if not alreadyknown[textureName] then
-              texture:SetVertexColor(.4,.4,.4,1)
-            else
-              texture:SetVertexColor(1,1,1,1)
-            end
+            texture:SetVertexColor(.4,.4,.4,1)
             texture:Show()
             textureCount = textureCount + 1
           end
